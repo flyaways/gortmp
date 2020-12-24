@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"time"
 
 	flv "github.com/zhangpeihao/goflv"
@@ -107,16 +106,18 @@ func (h *Handler) Run() {
 				stream.Attach(h)
 
 				if err := stream.Publish(h.rurl.Name, h.rurl.App); err != nil {
-					log.Printf("Publish error: %s", err.Error())
-					os.Exit(-1)
+					log.Printf("Publish error: %v\n", err)
+
+					return
 				}
 
 				continue
 			}
 
 			if err := stream.Play(h.rurl.Name, nil, nil, nil); err != nil {
-				log.Printf("Play error: %s", err.Error())
-				os.Exit(-1)
+				log.Printf("Play error: %v\n", err)
+
+				return
 			}
 
 		case <-time.After(5 * time.Second):
@@ -184,7 +185,7 @@ func (h *Handler) OnPublishStart(stream OutboundStream) {
 	go func(stream OutboundStream) {
 		flvFile, err := flv.OpenFile(h.filename)
 		if err != nil {
-			log.Printf("Open FLV dump file error:", err)
+			log.Printf("Open FLV dump file error: %v", err)
 			return
 		}
 
@@ -195,7 +196,7 @@ func (h *Handler) OnPublishStart(stream OutboundStream) {
 
 		for h.status == OUTBOUND_CONN_STATUS_CREATE_STREAM_OK {
 			if flvFile.IsFinished() {
-				log.Printf("@File finished")
+				log.Println("@File finished")
 				flvFile.LoopBack()
 				startAt = time.Now().UnixNano()
 				startTS = uint32(0)
@@ -204,7 +205,7 @@ func (h *Handler) OnPublishStart(stream OutboundStream) {
 
 			header, data, err := flvFile.ReadTag()
 			if err != nil {
-				log.Printf("flvFile.ReadTag() error:", err)
+				log.Printf("flvFile.ReadTag() error: %v", err)
 				break
 			}
 
@@ -228,7 +229,7 @@ func (h *Handler) OnPublishStart(stream OutboundStream) {
 			}
 
 			if err = stream.PublishData(header.TagType, data, diff1); err != nil {
-				log.Printf("PublishData() error:", err)
+				log.Printf("PublishData() error: %v", err)
 
 				break
 			}
